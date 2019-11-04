@@ -1,7 +1,7 @@
 ﻿Parameter,Practice,Default,Description
-tillfac_ft,Full-Till,3.036,Tillage disturbance modifier for decay rates under full tillage
-tillfac_rt,Reduced-Till,2.075,Tillage disturbance modifier for decay rates under reduced tillage
-tillfac_nt,No-till,1,Tillage disturbance modifier for decay rates under no tillage
+tillfac_ft,Full till,3.036,Tillage disturbance modifier for decay rates under full tillage
+tillfac_rt,Reduced till,2.075,Tillage disturbance modifier for decay rates under reduced tillage
+tillfac_nt,No till,1,Tillage disturbance modifier for decay rates under no tillage
 wfacpar1,All,0.2129,Intercept term to estimate wfac (effect of water on decomposition)
 wfacpar2,All,1.331,slope for mappet term to estimate wfac (effect of water on decomposition)
 wfacpar3,All,0.2413,slope for mappet^2 term to estimate wfac (effect of water on decomposition)
@@ -12,9 +12,9 @@ kfacs,All,0.209,decay rate under optimum condition for slow (k4)
 kfacp,All,0.00689,decay rate under optimum condition for passive (k5)
 f1,All,0.378,stabilization efficiencies for metabolic decay products entering the active pool
 f2,All,0.368,stabilization efficiencies for structural decay products entering the active pool if tillage is not known
-f2_ft,Full-Till,0.455,stabilization efficiencies for structural decay products entering the active pool under full tillage
-f2_rt,Reduced-Till,0.477,stabilization efficiencies for structural decay products entering the active pool under reduced tillage
-f2_nt,No-till,0.5,stabilization efficiencies for structural decay products entering the active pool under no tillage
+f2_ft,Full till,0.455,stabilization efficiencies for structural decay products entering the active pool under full tillage
+f2_rt,Reduced till,0.477,stabilization efficiencies for structural decay products entering the active pool under reduced tillage
+f2_nt,No till,0.5,stabilization efficiencies for structural decay products entering the active pool under no tillage
 f3,All,0.455,stabilization efficiencies for structural decay products entering the slow pool
 f4par1,All,0.17,intersept term for sand effect on stabilization efficiencies for active pool decay products entering the slow pool 
 f4par2,All,0.68,slope term for sand effect on stabilization efficiencies for active pool decay products entering the slow pool
