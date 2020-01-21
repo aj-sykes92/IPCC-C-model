@@ -39,6 +39,21 @@ alpha <- function(C_input, LC, NC){
   return(alpha)
 }
 
+##################
+# algorithms to calculate temperature and water factors
+
+# temperature factor, equation 5
+Ti <- function(tempi){
+  Ti <- ifelse(tempi > 45,
+               0,
+               ((pm$tmax - tempi) / (pm$tmax / pm$topt))^0.2 * exp(0.076 * (1 - ((pm$tmax - tempi) / (pm$tmax / pm$topt))^2.63))
+  )
+  return(Ti)
+}
+
+
+tfac <- function()
 
 ##################
 # algorithm to calculate active pool
+
