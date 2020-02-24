@@ -1,0 +1,22 @@
+Crop,N_frac,Lignin_frac
+Generic all crops,0.0083,0.073
+Generic grains,0.0068,0.074
+Winter wheat,0.0069,0.053
+Spring wheat,0.007,0.053
+Barley,0.009,0.046
+Oats,0.0073,0.047
+Maize,0.0063,0.11
+Rye,0.008,0.05
+Rice,0.007,0.125
+Millet,0.007,0.062
+Sorghum,0.0065,0.06
+Beans and pulses,0.008,0.075
+Soybeans,0.008,0.085
+Potatoes and tubers,0.0169,0.073
+Peanuts,0.016,0.086
+N-fixing forages,0.025,0.072
+Alfalfa,0.0238,0.072
+Non-N-fixing forages,0.0134,0.049
+Perennial grasses,0.0126,0.049
+Grass-clover Mixtures,0.0178,0.061
+Non-legume hay,0.0134,0.057
