@@ -115,6 +115,108 @@ Brk_precip <- Brk_precip %>% mask(Shp_UK)
 Brk_pet <- Brk_pet %>% mask(Shp_UK)
 Brk_temp <- Brk_temp %>% mask(Shp_UK)
 
+# read in soil sand %, crop & mask
+Ras_sand <- find_onedrive(dir = data_repo, path = "SoilGrids 5km/Sand content/Fixed/SNDPPT_M_sl4_5km_ll.tif") %>%
+  raster() %>%
+  crop(Shp_UK) %>%
+  resample(Brk_wheatarea) %>%
+  mask(Shp_UK)
+
+# all our data should be focused and compatible now
+Brk_wheatyield
+Brk_wheatarea
+Brk_precip
+Brk_pet
+Brk_temp
+Ras_sand
+
+#####################################################
+# convert all data to nested data frame to run model
+# one row per grid cell, nested data for each climate variable
+# starting with monthly variables, condensing to annual
+#####################################################
+
+# rename clim variable bricks so we can tell them apart in the same dataset
+names(Brk_precip) <- names(Brk_precip) %>% paste0("_Precip")
+names(Brk_pet) <- names(Brk_pet) %>% str_replace("X", "") %>% paste0("_PET")
+names(Brk_temp) <- names(Brk_temp) %>% str_replace("X", "") %>% paste0("_Temp")
+
+# convert all monthly climate bricks to data frame
+# checked to ensure rows match, much less computationally intensive than joining by x & y
+Dat_clim <- bind_cols(Brk_precip %>% as.data.frame(xy = T),
+                      Brk_pet %>% as.data.frame(),
+                      Brk_temp %>% as.data.frame()) %>%
+  drop_na()
+
+# gather all vars and spread by climate variable type
+Dat_clim <- Dat_clim %>%
+  gather(-x, -y, key = "key", value = "value") %>%
+  mutate(var = key %>% str_extract("(?<=_).+"),
+         Date = key %>% str_extract("\\d{4}\\.\\d{2}\\.\\d{2}") %>% ymd()) %>%
+  select(-key) %>%
+  spread(key = var, value = value)
+
+# adjust PET to full month (not per day)
+# calculate year from date
+Dat_clim <- Dat_clim %>%
+  mutate(Days_in_month = days_in_month(Date),
+         PET = PET * Days_in_month,
+         Year = year(Date))
+
+pet_test <- Dat_clim %>% slice(1:12) %>% pull(PET)
+precip_test <- Dat_clim %>% slice(1:12) %>% pull(Precip)
+
+rm(temp2)
+  
+summarise(wfac = wfac(precip = Precip, PET = PET),
+            tfac = tfac(temp = Temp),
+            n = n())
+
+
+# summarise using defined functions for wfac and tfac
+Dat_clim <- Dat_clim %>%
+  group_by(x, y, Year) %>%
+  summarise(wfac = wfac(precip = Precip, PET = PET),
+            tfac = tfac(temp = Temp),
+            n = n())
+
+
+
+
+str(Dat_clim)
+
+Dat_precip <- Brk_precip %>%
+  as.data.frame(xy = T) %>%
+  drop_na() %>%
+  gather(-x, -y, key = "Date", value = "Precip_mm") %>%
+  mutate(Date = Date %>%
+           str_replace_all("X", "") %>%
+           str_replace_all("\\.", "/") %>%
+           ymd())
+
+Dat_pet <- Brk_pet %>%
+  as.data.frame(xy = T) %>%
+  drop_na() %>%
+  gather(-x, -y, key = "Date", value = "Pet_mm") %>%
+  mutate(Date = Date %>%
+           str_replace_all("X", "") %>%
+           str_replace_all("\\.", "/") %>%
+           ymd())
+
+Dat_wfac <- inner_join(Dat_precip, Dat_pet, by = c("x", "y"))
+
+Dat_precip %>% arrange(x, y) %>% View()
+  
+
+
+
+Dat_wheatarea <- Brk_wheatarea %>%
+  as.data.frame(xy = T) %>%
+  gather(-x, -y, key = "Year", value = "Area_ha") %>%
+  mutate(Year = Year %>% str_replace_all("[^[:digit:]]", "") %>% as.numeric())
+
+
+
 # figure out how the hell to turn into nested data frame
 # purrr!
 
