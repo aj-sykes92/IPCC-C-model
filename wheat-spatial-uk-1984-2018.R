@@ -131,9 +131,7 @@ Brk_temp
 Ras_sand
 
 #####################################################
-# convert all data to nested data frame to run model
-# one row per grid cell, nested data for each climate variable
-# starting with monthly variables, condensing to annual
+# starting with monthly variables, converting to df and condensing to annual modification factors (tfac and wfac)
 #####################################################
 
 # rename clim variable bricks so we can tell them apart in the same dataset
@@ -163,52 +161,16 @@ Dat_clim <- Dat_clim %>%
          PET = PET * Days_in_month,
          Year = year(Date))
 
-pet_test <- Dat_clim %>% slice(1:12) %>% pull(PET)
-precip_test <- Dat_clim %>% slice(1:12) %>% pull(Precip)
-
-rm(temp2)
-  
-summarise(wfac = wfac(precip = Precip, PET = PET),
-            tfac = tfac(temp = Temp),
-            n = n())
-
-
 # summarise using defined functions for wfac and tfac
 Dat_clim <- Dat_clim %>%
   group_by(x, y, Year) %>%
   summarise(wfac = wfac(precip = Precip, PET = PET),
-            tfac = tfac(temp = Temp),
-            n = n())
+            tfac = tfac(temp = Temp))
 
-
-
-
-str(Dat_clim)
-
-Dat_precip <- Brk_precip %>%
-  as.data.frame(xy = T) %>%
-  drop_na() %>%
-  gather(-x, -y, key = "Date", value = "Precip_mm") %>%
-  mutate(Date = Date %>%
-           str_replace_all("X", "") %>%
-           str_replace_all("\\.", "/") %>%
-           ymd())
-
-Dat_pet <- Brk_pet %>%
-  as.data.frame(xy = T) %>%
-  drop_na() %>%
-  gather(-x, -y, key = "Date", value = "Pet_mm") %>%
-  mutate(Date = Date %>%
-           str_replace_all("X", "") %>%
-           str_replace_all("\\.", "/") %>%
-           ymd())
-
-Dat_wfac <- inner_join(Dat_precip, Dat_pet, by = c("x", "y"))
-
-Dat_precip %>% arrange(x, y) %>% View()
-  
-
-
+#####################################################
+# convert all data to nested data frame to run model
+# one row per grid cell, nested data for each climate variable
+#####################################################
 
 Dat_wheatarea <- Brk_wheatarea %>%
   as.data.frame(xy = T) %>%
@@ -219,8 +181,6 @@ Dat_wheatarea <- Brk_wheatarea %>%
 
 # figure out how the hell to turn into nested data frame
 # purrr!
-
-# what about soil sand %??
 
 
 # crop variables
