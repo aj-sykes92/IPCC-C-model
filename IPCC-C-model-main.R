@@ -131,4 +131,36 @@ passive_y <- function(passive_y_m1, passive_y_ss, k_p){
   return(passive_y)
 }
 
+###################
+# function to calculate C inputs from crop residues (tonnes C per hectare)
+C_in_residues <- function(yield, crop, frac_renew, frac_remove){
+  lookup1 <- read_csv("Below-ground-residue-coefficients.csv", na = c("", "NA"), , col_types = "cnnn")
+  lookup2 <- read_csv("Above-ground-residue-coefficients.csv", na = c("", "NA"), col_types = "cnnnnn")
+  
+  RS <- lookup1 %>% filter(Crop == crop) %>% pull(RS)
+  DRY <- lookup1 %>% filter(Crop == crop) %>% pull(DRY)
+  Slope <- lookup2 %>% filter(Crop == crop) %>% pull(Slope)
+  Intercept <- lookup2 %>% filter(Crop == crop) %>% pull(Intercept)
+  
+  yield_dry <- yield * DRY
+  agdm <- yield_dry * Slope + Intercept
+  bgr <- yield_dry * agdm * RS * frac_renew # note this line is different to IPCC (2019) -- presumed error in calculations (addition of +1 term to agdm, which makes no sense)
+  agr <- agdm * frac_renew * (1 - frac_remove)
+  
+  C_in_residues <- agr * 0.42 + bgr * 0.42 # 42% C assumption
+  return(C_in_residues)
+}
+
+###################
+# function to calculate C inputs from manure (tonnes C per hectare)
+C_in_manure <- function(man_nrate, man_type){
+  lookup1 <- read_csv("Manure-coefficients.csv", na = c("", "NA"), col_type = "cnnn")
+  
+  CN <- lookup1 %>% filter(Livestock_type == man_type) %>% pull(CN_ratio)
+  C_in_manure <- CN * man_nrate * 10^-3 # manure C in tonnes ha-1
+  return(C_in_manure)
+}
+
 detach("package:tidyverse", unload = T)
+
+

@@ -1,0 +1,25 @@
+Crop,Slope,Slope_bw,Intercept,Intercept_bw,R_squared
+Grains,1.09,0.02,0.88,0.06,0.65
+Beans and pulses,1.13,0.19,0.85,0.56,0.28
+Tubers,0.1,0.69,1.06,0.7,0.18
+"Root crops, other",1.07,0.19,1.54,0.41,0.63
+N-fixing forages,0.3,0.5,0,0,0
+Non-N-fixing forages,0.3,0.5,0,0,0
+Perennial grasses,0.3,0.5,0,0,0
+Grass-clover mixtures,0.3,0.5,0,0,0
+Maize,1.03,0.03,0.61,0.19,0.76
+Wheat,1.51,0.03,0.52,0.17,0.68
+Winter wheat,1.61,0.03,0.4,0.25,0.67
+Spring wheat,1.29,0.05,0.75,0.26,0.76
+Rice,0.95,0.19,2.45,0.41,0.47
+Barley,0.98,0.08,0.59,0.41,0.68
+Oats,0.91,0.05,0.89,0.08,0.45
+Millet,1.43,0.18,0.14,3.08,0.5
+Sorghum,0.88,0.13,1.33,0.27,0.36
+Rye,1.09,0.5,0.88,0.5,0
+Soybean,0.93,0.31,1.35,0.49,0.16
+Dry bean,0.36,1,0.68,0.47,0.15
+Potato,0.1,0.69,1.06,0.7,0.18
+Peanut,1.07,0.19,1.54,0.41,0.63
+Alfalfa,0.29,0.31,0,0,0
+Non-legume hay,0.18,0.5,0,0,0

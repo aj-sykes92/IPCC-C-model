@@ -1,0 +1,23 @@
+Crop,RS,RS_bw,DRY
+Generic all crops,0.22,NA,0.85
+Generic grains,0.22,0.16,0.88
+Wheat,0.255,0.335,0.89
+Winter wheat,0.23,0.41,0.89
+Spring wheat,0.28,0.26,0.89
+Barley,0.22,0.33,0.89
+Oats,0.25,1.2,0.89
+Maize,0.22,0.26,0.87
+Rye,NA,NA,0.88
+Rice,0.16,,0.89
+Millet,NA,NA,0.9
+Sorghum,NA,NA,0.89
+Beans and pulses,0.19,0.45,0.91
+Soybeans,0.19,0.45,0.91
+Potatoes and tubers,0.2,0.5,0.22
+Peanuts,NA,NA,0.94
+Alfalfa,0.4,0.5,0.9
+Non-legume hay,0.54,0.5,0.9
+N-fixing forages,0.4,0.5,0.9
+Non-N-fixing forages,0.54,0.5,0.9
+Perennial grasses,0.8,0.5,0.9
+Grass-clover mixtures,0.8,0.5,0.9

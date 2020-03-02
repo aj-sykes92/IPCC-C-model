@@ -164,18 +164,73 @@ Dat_clim <- Dat_clim %>%
 # summarise using defined functions for wfac and tfac
 Dat_clim <- Dat_clim %>%
   group_by(x, y, Year) %>%
-  summarise(wfac = wfac(precip = Precip, PET = PET),
-            tfac = tfac(temp = Temp))
+  summarise(Wfac = wfac(precip = Precip, PET = PET),
+            Tfac = tfac(temp = Temp)) %>%
+  ungroup()
+
+#####################################################
+# convert crop data to df and calculate crop variables
+#####################################################
+
+# join up wheat data, convert to data frame, gather years and spread variables
+Dat_wheat <- bind_cols(
+  Brk_wheatarea %>% as.data.frame(xy = T), # as above, simpler and less computationally intensive. Checked and double-checked for mis-aligned rows
+  Brk_wheatyield %>% as.data.frame()
+  ) %>%
+  as_tibble() %>%
+  drop_na() %>%
+  gather(-x, -y, key = "key", value = "value") %>%
+  mutate(Year = key %>% str_extract("[:digit:]+") %>% as.numeric(),
+         var = key %>% str_extract("^[:alpha:]+(?=_)")) %>%
+  select(-key) %>%
+  spread(key = var, value = value) %>%
+  rename(Area_ha = area, Yield_tha = yield)
+
+# calculate C inputs from residues
+Dat_wheat <- Dat_wheat %>%
+  mutate(C_res = C_in_residues(yield = Yield_tha,
+                               crop = "Wheat",
+                               frac_renew = 1,
+                               frac_remove = 0.7))
+
+# simulate manure N application rates (placeholder for now)
+set.seed(2605)
+Dat_man <- tibble(Year = 1984:2018,
+                  Man_Nrate = rnorm(n = 35, mean = 30.9, sd = 5.4)) # mean and sd for manure N rate for spring crops from [Manure-application-rates.xlsx]
+
+# calculate C inputs from manure
+Dat_wheat <- Dat_wheat %>%
+  left_join(Dat_man, by = "Year") %>%
+  mutate(C_man = C_in_manure(man_nrate = Man_Nrate,
+                             man_type = "Beef cattle"))
+
+#####################################################
+# convert sand data to df and join all data into main dataset
+# using crop data as the basis limits join to only where the model is to be run
+#####################################################
+Dat_sand <- Ras_sand %>%
+  as.data.frame(xy = T) %>%
+  as_tibble() %>%
+  drop_na() %>%
+  rename(Sand_pc = SNDPPT_M_sl4_5km_ll)
+
+# miniscule discrepancy in n of sig figs prevents join if we don't take care of it here
+Dat_wheat <- Dat_wheat %>%
+  mutate_at(vars(x, y), funs(round(., 6)))
+Dat_clim <- Dat_clim %>%
+  mutate_at(vars(x, y), funs(round(., 6)))
+Dat_sand <- Dat_sand %>%
+  mutate_at(vars(x, y), funs(round(., 6)))
+
+# join up all our work so far
+Dat_main <- Dat_wheat %>%
+  left_join(Dat_clim, by = c("x", "y", "Year")) %>% 
+  left_join(Dat_sand, by = c("x", "y"))
 
 #####################################################
 # convert all data to nested data frame to run model
 # one row per grid cell, nested data for each climate variable
 #####################################################
-
-Dat_wheatarea <- Brk_wheatarea %>%
-  as.data.frame(xy = T) %>%
-  gather(-x, -y, key = "Year", value = "Area_ha") %>%
-  mutate(Year = Year %>% str_replace_all("[^[:digit:]]", "") %>% as.numeric())
 
 
 
