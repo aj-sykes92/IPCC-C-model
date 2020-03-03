@@ -1,6 +1,7 @@
 Crop,N_frac,Lignin_frac
 Generic all crops,0.0083,0.073
 Generic grains,0.0068,0.074
+Wheat,0.00695,0.053
 Winter wheat,0.0069,0.053
 Spring wheat,0.007,0.053
 Barley,0.009,0.046

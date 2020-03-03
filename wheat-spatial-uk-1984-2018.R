@@ -212,7 +212,8 @@ Dat_sand <- Ras_sand %>%
   as.data.frame(xy = T) %>%
   as_tibble() %>%
   drop_na() %>%
-  rename(Sand_pc = SNDPPT_M_sl4_5km_ll)
+  mutate(Sand_frac = SNDPPT_M_sl4_5km_ll / 100) %>%
+  select(-SNDPPT_M_sl4_5km_ll)
 
 # miniscule discrepancy in n of sig figs prevents join if we don't take care of it here
 Dat_wheat <- Dat_wheat %>%
@@ -228,10 +229,62 @@ Dat_main <- Dat_wheat %>%
   left_join(Dat_sand, by = c("x", "y"))
 
 #####################################################
+# calculate environment specific model coefficients
+#####################################################
+Dat_crop <- read_csv("Crop-N-and-lignin-fractions.csv")
+till_type <- "full"
+
+Dat_main <- Dat_main %>%
+  mutate(N_frac = Dat_crop %>% filter(Crop == "Wheat") %>% pull(N_frac),
+         Lignin_frac = Dat_crop %>% filter(Crop == "Wheat") %>% pull(Lignin_frac),
+         #f2 = f2(tillage = till_type),
+         #f4 = f4(sand = Sand_frac),
+         C_tot = C_res + C_man)
+
+rm(Dat_crop)
+
+#####################################################
 # convert all data to nested data frame to run model
-# one row per grid cell, nested data for each climate variable
+# one row per grid cell, nested dataframes for each grid cell with rows as years
 #####################################################
 
+# nest up data by grid cell
+Dat_nest <- Dat_main %>%
+  group_by(x, y) %>%
+  nest(data = c(Year:C_tot))
+
+# create new datasets with averaged run-in period
+runin_period <- 10
+Dat_nest <- Dat_nest %>%
+  mutate(data_runin = map2(data, runin_period, run_in))
+
+# calculate alpha and beta
+Dat_nest <- Dat_nest %>%
+  mutate(data_runin = map(data_runin, function(df){
+    df %>%
+      mutate(Alpha = alpha(C_input = C_tot,
+                           LC = Lignin_frac,
+                           NC = N_frac,
+                           sand = Sand_frac,
+                           tillage = till_type),
+             Beta = beta(C_input = C_tot,
+                         LC = Lignin_frac,
+                         NC = N_frac))
+    }))
+
+# calculate active pool
+Dat_nest <- Dat_nest %>%
+  mutate(data_runin = map(data_runin, function(df){
+    df %>%
+      mutate(K_a = k_a(tfac = Tfac,
+                       wfac = Wfac,
+                       tillfac = tillfac(till_type),
+                       sand = Sand_frac),
+             Active_y_ss = active_y_ss(k_a = K_a,
+                                       alpha = Alpha),
+             Active_y = active_y(k_a = K_a,
+                                 active_y_m1 = lag())) ## how to make this recursive??
+  }))
 
 
 # figure out how the hell to turn into nested data frame

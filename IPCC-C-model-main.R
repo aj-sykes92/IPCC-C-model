@@ -161,6 +161,18 @@ C_in_manure <- function(man_nrate, man_type){
   return(C_in_manure)
 }
 
+###################
+# function to modify (tibble) dataframe to run-in period
+run_in <- function(df, years){
+  df %>%
+    arrange(Year) %>% # make absolutely sure it's in chronological order
+    slice(1:years) %>%
+    summarise_all(.funs = mean) %>%
+    mutate(Year = NA) %>%
+    bind_rows(df %>% slice(-(1:years))) %>%
+    return()
+}
+
 detach("package:tidyverse", unload = T)
 
 
