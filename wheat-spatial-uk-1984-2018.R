@@ -253,48 +253,25 @@ Dat_nest <- Dat_main %>%
   group_by(x, y) %>%
   nest(data = c(Year:C_tot))
 
-# create new datasets with averaged run-in period
-runin_period <- 10
+# create new dataset with run-in period
+runin_period <- 20
 Dat_nest <- Dat_nest %>%
   mutate(data_runin = map2(data, runin_period, run_in))
 
-# calculate alpha and beta
+# run our model for a baseline scenario
 Dat_nest <- Dat_nest %>%
-  mutate(data_runin = map(data_runin, function(df){
-    df %>%
-      mutate(Alpha = alpha(C_input = C_tot,
-                           LC = Lignin_frac,
-                           NC = N_frac,
-                           sand = Sand_frac,
-                           tillage = till_type),
-             Beta = beta(C_input = C_tot,
-                         LC = Lignin_frac,
-                         NC = N_frac))
-    }))
+  mutate(scen_baseline = map(data_runin, run_model))
 
-# calculate active pool
-Dat_nest <- Dat_nest %>%
-  mutate(data_runin = map(data_runin, function(df){
-    df %>%
-      mutate(K_a = k_a(tfac = Tfac,
-                       wfac = Wfac,
-                       tillfac = tillfac(till_type),
-                       sand = Sand_frac),
-             Active_y_ss = active_y_ss(k_a = K_a,
-                                       alpha = Alpha),
-             Active_y = active_y(k_a = K_a,
-                                 active_y_m1 = lag())) ## how to make this recursive??
-  }))
+# baseline test plot
+Dat_nest %>%
+  ungroup() %>%
+  mutate(gridcell = 1:nrow(Dat_nest)) %>%
+  unnest(cols = scen_baseline) %>%
+  drop_na() %>%
+  #filter(gridcell == 1) %>%
+  ggplot(aes(x = Year, y = Total_y)) +
+  geom_line(aes(group = gridcell, colour = y), alpha = 0.5)
 
+# model runs for modified scenarios.....
 
-# figure out how the hell to turn into nested data frame
-# purrr!
-
-
-# crop variables
-# N frac
-# lignin frac
-
-# annual variables
-# C input
 

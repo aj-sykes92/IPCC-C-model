@@ -6,8 +6,9 @@ library(tidyverse)
 ##################
 # implement top-level function for C stock change 
 SOC_stock_change <- function(Active_y, Slow_y, Passive_y){
-  SOC_y <- sum(c(Active_y, Slow_y, Passive_y))
-  A_CMineral <- SOC_y - lag(SOC_y, default = 0)
+  SOC_y <- Active_y + Slow_y + Passive_y
+  A_CMineral <- SOC_y - lag(SOC_y, default = NA)
+  A_CMineral <- ifelse(is.na(A_CMineral), 0, A_CMineral)
   return(A_CMineral)
 }
 
@@ -92,8 +93,11 @@ active_y_ss <- function(k_a, alpha){
   return(active_y_ss)
 }
 
-active_y <- function(k_a, active_y_m1, active_y_ss){
-  active_y <- active_y_m1 + (active_y_ss - active_y_m1) * min(1, k_a)
+active_y <- function(k_a, active_y_ss){
+  for(i in 1:length(active_y_ss)){
+    if(i == 1) active_y <- active_y_ss[i]
+    if(i > 1) active_y <- c(active_y, active_y[i - 1] + (active_y_ss[i] - active_y[i - 1]) * min(1, k_a[i]))
+  }
   return(active_y)
 }
 
@@ -105,12 +109,15 @@ k_s <- function(tfac, wfac, tillfac){
 }
 
 slow_y_ss <- function(C_input, LC, active_y_ss, k_s, k_a, sand){
-  ((C_input * LC * pm$f3) + (active_y_ss * k_a * f4(sand = sand))) / k_s
+  slow_y_ss <- ((C_input * LC * pm$f3) + (active_y_ss * k_a * f4(sand = sand))) / k_s
   return(slow_y_ss)
 }
 
-slow_y <- function(k_s, slow_y_m1, slow_y_ss){
-  slow_y <- slow_y_m1 + (slow_y_ss - slow_y_m1) * min(1, k_s)
+slow_y <- function(k_s, slow_y_ss){
+  for(i in 1:length(slow_y_ss)){
+    if(i == 1) slow_y <- slow_y_ss[i]
+    if(i > 1) slow_y <- c(slow_y, slow_y[i - 1] + (slow_y_ss[i] - slow_y[i - 1]) * min(1, k_s[i]))
+  }
   return(slow_y)
 }
 
@@ -126,8 +133,11 @@ passive_y_ss <- function(active_y_ss, slow_y_ss, k_a, k_s, k_p){
   return(passive_y_ss)
 }
 
-passive_y <- function(passive_y_m1, passive_y_ss, k_p){
-  passive_y <- passive_y_m1 + (passive_y_ss - passive_y_m1) * min(1, k_p)
+passive_y <- function(k_p, passive_y_ss){
+  for(i in 1:length(passive_y_ss)){
+    if(i == 1) passive_y <- passive_y_ss[i]
+    if(i > 1) passive_y <- c(passive_y, passive_y[i - 1] + (passive_y_ss[i] - passive_y[i - 1]) * min(1, k_p[i]))
+  }
   return(passive_y)
 }
 
@@ -162,15 +172,66 @@ C_in_manure <- function(man_nrate, man_type){
 }
 
 ###################
-# function to modify (tibble) dataframe to run-in period
+# function to modify (tibble) dataframe to include a first row calculated from run-in period
 run_in <- function(df, years){
   df %>%
     arrange(Year) %>% # make absolutely sure it's in chronological order
     slice(1:years) %>%
     summarise_all(.funs = mean) %>%
     mutate(Year = NA) %>%
-    bind_rows(df %>% slice(-(1:years))) %>%
+    bind_rows(df) %>%
     return()
+}
+
+###################
+# fire off the whole darn shooting match
+run_model <- function(df){
+  df %>%
+    mutate(Alpha = alpha(C_input = C_tot,
+                         LC = Lignin_frac,
+                         NC = N_frac,
+                         sand = Sand_frac,
+                         tillage = till_type),
+           Beta = beta(C_input = C_tot,
+                       LC = Lignin_frac,
+                       NC = N_frac),
+           
+           # active pool
+           K_a = k_a(tfac = Tfac,
+                     wfac = Wfac,
+                     tillfac = tillfac(till_type),
+                     sand = Sand_frac),
+           Active_y_ss = active_y_ss(k_a = K_a,
+                                     alpha = Alpha),
+           Active_y = active_y(k_a = K_a, active_y_ss = Active_y_ss),
+           
+           # slow pool
+           K_s = k_s(tfac = Tfac,
+                     wfac = Wfac,
+                     tillfac = tillfac(till_type)),
+           Slow_y_ss = slow_y_ss(C_input = C_tot,
+                                 LC = Lignin_frac,
+                                 active_y_ss = Active_y_ss,
+                                 k_s = K_s,
+                                 k_a = K_a,
+                                 sand = Sand_frac),
+           Slow_y = slow_y(k_s = K_s,
+                           slow_y_ss = Slow_y_ss),
+           
+           # passive pool
+           K_p = k_p(tfac = Tfac,
+                     wfac = Wfac),
+           Passive_y_ss = passive_y_ss(active_y_ss = Active_y_ss,
+                                       slow_y_ss = Slow_y_ss,
+                                       k_a = K_a,
+                                       k_s = K_s,
+                                       k_p = K_p),
+           Passive_y = passive_y(k_p = K_p,
+                                 passive_y_ss = Passive_y_ss),
+           
+           # roundup
+           Total_y = Active_y + Slow_y + Passive_y,
+           Stock_change = SOC_stock_change(Active_y, Slow_y, Passive_y))
 }
 
 detach("package:tidyverse", unload = T)
