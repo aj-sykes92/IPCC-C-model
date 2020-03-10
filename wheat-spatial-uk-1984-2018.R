@@ -232,7 +232,7 @@ Dat_main <- Dat_wheat %>%
 # calculate environment specific model coefficients
 #####################################################
 Dat_crop <- read_csv("Crop-N-and-lignin-fractions.csv")
-till_type <- "full"
+#till_type <- "full"
 
 Dat_main <- Dat_main %>%
   mutate(N_frac = Dat_crop %>% filter(Crop == "Wheat") %>% pull(N_frac),
@@ -258,20 +258,122 @@ runin_period <- 20
 Dat_nest <- Dat_nest %>%
   mutate(data_runin = map2(data, runin_period, run_in))
 
-# run our model for a baseline scenario
-Dat_nest <- Dat_nest %>%
-  mutate(scen_baseline = map(data_runin, run_model))
+# run our model for a full till baseline scenario
+fulltill_scen <- function(df){
+  df %>% mutate(Till_type = "full")
+}
 
-# baseline test plot
+Dat_nest <- Dat_nest %>%
+  mutate(scen_baseline = data_runin %>%
+           map(fulltill_scen) %>%
+           map(run_model))
+
+# baseline test plots
+set.seed(2605)
+ts_plot(Dat_nest, "scen_baseline", 500)
+
 Dat_nest %>%
   ungroup() %>%
-  mutate(gridcell = 1:nrow(Dat_nest)) %>%
   unnest(cols = scen_baseline) %>%
   drop_na() %>%
-  #filter(gridcell == 1) %>%
-  ggplot(aes(x = Year, y = Total_y)) +
-  geom_line(aes(group = gridcell, colour = y), alpha = 0.5)
+  filter(Year == 2017) %>%
+  ggplot(aes(x = x, y = y, fill = Stock_change)) +
+  geom_raster() +
+  #geom_polygon(data = Shp_UK, aes(x = long, y = lat, group = group), colour = "black", fill = NA, size = 0.5) + # uncomment if needed — time-consuming
+  coord_quickmap() +
+  theme_void()
 
-# model runs for modified scenarios.....
+#####################################################
+# model runs for modified tillage scenarios.....
+#####################################################
 
+# zero till after run-in
+zerotill_scen <- function(df){
+  df %>% mutate(Till_type = c("full", rep("zero", nrow(df) - 1)))
+}
 
+Dat_nest <- Dat_nest %>%
+  mutate(scen_zerotill = data_runin %>%
+           map(zerotill_scen) %>%
+           map(run_model))
+
+ts_plot(Dat_nest, "scen_zerotill", 500, "Zero tillage")
+
+# reduced till after run-in
+redtill_scen <- function(df){
+  df %>% mutate(Till_type = c("full", rep("reduced", nrow(df) - 1)))
+}
+
+Dat_nest <- Dat_nest %>%
+  mutate(scen_redtill = data_runin %>%
+           map(redtill_scen) %>%
+           map(run_model))
+
+ts_plot(Dat_nest, "scen_redtill", 500, "Reduced tillage")
+
+#####################################################
+# model runs for modified manure scenarios.....
+#####################################################
+
+manure_mod <- function(df, factor){
+  df %>%
+    mutate(C_man = ifelse(!is.na(Year), C_man * factor, C_man),
+           C_tot = C_res + C_man)
+}
+
+# manure x 2
+Dat_nest <- Dat_nest %>%
+  mutate(scen_man_x2 = data_runin %>%
+           map(fulltill_scen) %>%
+           map2(2, manure_mod) %>%
+           map(run_model))
+
+ts_plot(Dat_nest, "scen_man_x2", 500, "Manure x2")
+
+# manure x 5
+Dat_nest <- Dat_nest %>%
+  mutate(scen_man_x5 = data_runin %>%
+           map(fulltill_scen) %>%
+           map2(5, manure_mod) %>%
+           map(run_model))
+
+ts_plot(Dat_nest, "scen_man_x5", 500, "Manure x5")
+
+# no manure
+Dat_nest <- Dat_nest %>%
+  mutate(scen_man_x0 = data_runin %>%
+           map(fulltill_scen) %>%
+           map2(0, manure_mod) %>%
+           map(run_model))
+
+ts_plot(Dat_nest, "scen_man_x0", 500, "Manure removed")
+
+#####################################################
+# model runs for residues left on field
+#####################################################
+
+res_mod <- function(df, frac_remove){
+  df %>%
+    mutate(C_res = ifelse(!is.na(Year),
+                          C_in_residues(yield = Yield_tha,
+                                        crop = "Wheat",
+                                        frac_renew = 1,
+                                        frac_remove = frac_remove),
+                          C_res),
+           C_tot = C_res + C_man)
+}
+
+# residues retained
+Dat_nest <- Dat_nest %>%
+  mutate(scen_retainres = data_runin %>%
+           map(fulltill_scen) %>%
+           map2(0, res_mod) %>%
+           map(run_model))
+
+ts_plot(Dat_nest, "scen_retainres", 500, "No residue removal")
+
+#####################################################
+# write out scenario set for ease of access
+#####################################################
+
+write_rds(Dat_nest, "Model-scenarios/wheat-spatial-uk-1984-2018.rds")

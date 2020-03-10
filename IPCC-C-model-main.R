@@ -144,7 +144,7 @@ passive_y <- function(k_p, passive_y_ss){
 ###################
 # function to calculate C inputs from crop residues (tonnes C per hectare)
 C_in_residues <- function(yield, crop, frac_renew, frac_remove){
-  lookup1 <- read_csv("Below-ground-residue-coefficients.csv", na = c("", "NA"), , col_types = "cnnn")
+  lookup1 <- read_csv("Below-ground-residue-coefficients.csv", na = c("", "NA"), col_types = "cnnn")
   lookup2 <- read_csv("Above-ground-residue-coefficients.csv", na = c("", "NA"), col_types = "cnnnnn")
   
   RS <- lookup1 %>% filter(Crop == crop) %>% pull(RS)
@@ -177,7 +177,7 @@ run_in <- function(df, years){
   df %>%
     arrange(Year) %>% # make absolutely sure it's in chronological order
     slice(1:years) %>%
-    summarise_all(.funs = mean) %>%
+    summarise_all(.funs = ifelse(is.numeric(.), mean, median)) %>%
     mutate(Year = NA) %>%
     bind_rows(df) %>%
     return()
@@ -191,7 +191,7 @@ run_model <- function(df){
                          LC = Lignin_frac,
                          NC = N_frac,
                          sand = Sand_frac,
-                         tillage = till_type),
+                         tillage = Till_type),
            Beta = beta(C_input = C_tot,
                        LC = Lignin_frac,
                        NC = N_frac),
@@ -199,7 +199,7 @@ run_model <- function(df){
            # active pool
            K_a = k_a(tfac = Tfac,
                      wfac = Wfac,
-                     tillfac = tillfac(till_type),
+                     tillfac = tillfac(Till_type),
                      sand = Sand_frac),
            Active_y_ss = active_y_ss(k_a = K_a,
                                      alpha = Alpha),
@@ -208,7 +208,7 @@ run_model <- function(df){
            # slow pool
            K_s = k_s(tfac = Tfac,
                      wfac = Wfac,
-                     tillfac = tillfac(till_type)),
+                     tillfac = tillfac(Till_type)),
            Slow_y_ss = slow_y_ss(C_input = C_tot,
                                  LC = Lignin_frac,
                                  active_y_ss = Active_y_ss,
@@ -233,6 +233,28 @@ run_model <- function(df){
            Total_y = Active_y + Slow_y + Passive_y,
            Stock_change = SOC_stock_change(Active_y, Slow_y, Passive_y))
 }
+
+###################
+# timeseries plot function
+ts_plot <- function(df, col, n = nrow(df), title = col){
+  #if(is.null(n)) n <- nrow(df)
+  df %>%
+    ungroup() %>%
+    mutate(gridcell = 1:nrow(Dat_nest)) %>%
+    sample_n(n, replace = F) %>%
+    unnest(cols = c(col)) %>%
+    group_by(gridcell) %>%
+    mutate(Total_y_std = Total_y / Total_y[is.na(Year)],
+           Year = ifelse(is.na(Year), min(Year, na.rm = T) - 1, Year)) %>%
+    ggplot(aes(x = Year, y = Total_y_std)) +
+    geom_line(aes(group = gridcell, colour = y), alpha = 0.08) +
+    geom_smooth(size = 0.5, colour = "red") +
+    geom_hline(yintercept = 1, size = 0.5, colour = "black", lty = 2) +
+    labs(x = "Year", y = "SOC response ratio", colour = "Latitude", title = title) +
+    theme_classic()
+}
+
+
 
 detach("package:tidyverse", unload = T)
 
